@@ -125,7 +125,7 @@ services:
 
   app:
     build: .
-    command: sh -c "wait-for postgres:5432 && python manage.py collectstatic --no-input && python manage.py migrate && gunicorn mysite.wsgi -b 0.0.0.0:8000"
+    command: sh -c "wait-for postgres:5432 && python manage.py collectstatic --no-input && python manage.py migrate && gunicorn GetEthereum.wsgi -b 0.0.0.0:8000"
     container_name: app
     depends_on:
       - postgres
@@ -139,7 +139,7 @@ services:
     restart: on-failure
 
   celery_worker:
-    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A mysite worker -l info"
+    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A GetEthereum worker -l info"
     container_name: celery_worker
     depends_on:
       - app
@@ -163,7 +163,7 @@ services:
     restart: on-failure
 
   celery_beat:
-    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A mysite beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A GetEthereum beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: celery_beat
     depends_on:
       - app
@@ -282,7 +282,7 @@ services:
 
   app:
     environment:
-      - DJANGO_SETTINGS_MODULE=mysite.settings.production
+      - DJANGO_SETTINGS_MODULE=GetEthereum.settings.production
       - SECRET_KEY
     volumes:
       - static:/static
@@ -351,20 +351,20 @@ check that both `rabbitmq:5672` and `app:8000` are reachable before invoking the
 ```YAML
 services:
   celery_worker:
-    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 && celery -A mysite worker -l info"
+    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 && celery -A GetEthereum worker -l info"
 ```
 
 &nbsp;
 ### Multiple Django settings files
-By default, creating a Django project using `django-admin startproject mysite` results in a single
+By default, creating a Django project using `django-admin startproject GetEthereum` results in a single
 settings file as below:
 
 ```bash
-$ django-admin startproject mysite
-$ tree mysite
-mysite/
+$ django-admin startproject GetEthereum
+$ tree GetEthereum
+GetEthereum/
 ├── manage.py
-└── mysite
+└── GetEthereum
     ├── __init__.py
     ├── settings.py
     ├── urls.py
@@ -376,10 +376,10 @@ can be replaced by a `settings` _folder_ (which must contain an `__init__.py` fi
 submodule).
 
 ```bash
-$ tree mysite
-mysite/
+$ tree GetEthereum
+GetEthereum/
 ├── manage.py
-└── mysite
+└── GetEthereum
     ├── __init__.py
     ├── settings
     │   ├── development.py
@@ -420,7 +420,7 @@ To tell Django to use a specific settings file, the `DJANGO_SETTINGS_MODULE` env
 must be set accordingly, i.e.,
 
 ```bash
-export DJANGO_SETTINGS_MODULE=mysite.settings.production
+export DJANGO_SETTINGS_MODULE=GetEthereum.settings.production
 python manage.py runserver 0:8000
 ```
 
@@ -432,21 +432,21 @@ running io tasks can be deferred in the form of asynchronous _tasks_. Many good 
 explain how to set up Celery such as [this one](https://www.revsys.com/tidbits/celery-and-django-and-docker-oh-my/).
 Whilst it can seem overwhelming at first it's actually quite straightforward once it's been set up once.
 
-Firstly, the Celery app needs to be defined in [`mysite/celery_app.py`](./mysite/celery_app.py),
+Firstly, the Celery app needs to be defined in [`GetEthereum/celery_app.py`](./mysite/celery_app.py),
 set to obtain configuration from the Django config, and to automatically discover tasks defined
 throughout the Django project
 
 ```python
-# mysite/celery_app.py
+# GetEthereum/celery_app.py
 
 import os
 
 from celery import Celery
 
 # Set default Django settings
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'mysite.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'GetEthereum.settings')
 
-app = Celery('mysite')
+app = Celery('GetEthereum')
 app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks()
 ```
@@ -455,7 +455,7 @@ Celery related configuration is pulled in from the Django settings file, specifi
 beginning with `'CELERY'` will be interpreted as Celery related settings.
 
 ```python
-# mysite/setttings/settings.py
+# GetEthereum/setttings/settings.py
 
 from celery.schedules import crontab
 
@@ -475,11 +475,11 @@ be used as the Celery result backend. Periodic tasks to be scheduled by the `cel
 are also defined here. In this case, there is a single periodic task, `polls.tasks.query_every_five_mins`,
 which will be executed every 5 minutes as specified by the crontab.
 
-The Celery app must be added in to the Django module's `__all__` variable in `mysite/__init__.py`
+The Celery app must be added in to the Django module's `__all__` variable in `GetEthereum/__init__.py`
 like so
 
 ```python
-# mysite/__init__.py
+# GetEthereum/__init__.py
 
 from .celery_app import app as celery_app
 
@@ -497,7 +497,7 @@ contains the following (very contrived!) tasks
 import time
 
 from .models import Question
-from mysite.celery_app import app as celery_app
+from GetEthereum.celery_app import app as celery_app
 
 
 @celery_app.task
@@ -573,7 +573,7 @@ performing any necessary database migrations
 wait-for postgres:5432\
   && python manage.py collectstatic --no-input\
   && python manage.py migrate\
-  && gunicorn mysite.wsgi -b 0.0.0.0:8000
+  && gunicorn GetEthereum.wsgi -b 0.0.0.0:8000
 ```
 
 To successfully run the `app` service's production command, `gunicorn` must

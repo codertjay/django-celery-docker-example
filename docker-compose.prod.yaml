@@ -4,8 +4,7 @@ services:
 
   app:
     environment:
-      - DJANGO_SETTINGS_MODULE=mysite.settings.production
-      - SECRET_KEY
+      - DJANGO_SETTINGS_MODULE=GetEthereum.settings
     volumes:
       - static:/static
 

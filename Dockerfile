@@ -16,4 +16,4 @@ RUN apk del .build-deps
 
 EXPOSE 8000
 
-CMD ["gunicorn", "mysite.wsgi", "0:8000"]
+CMD ["gunicorn", "GetEthereum.wsgi", "0:8000"]

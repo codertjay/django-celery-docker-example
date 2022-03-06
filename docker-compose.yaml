@@ -12,28 +12,12 @@ services:
       - "5672:5672"
     restart: on-failure
 
-  postgres:
-    container_name: postgres
-    hostname: postgres
-    image: postgres:latest
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
-    networks:
-      - main
-    ports:
-      - "5432:5432"
-    restart: on-failure
-    volumes:
-      - postgresql-data:/var/lib/postgresql/data
 
   app:
     build: .
-    command: sh -c "wait-for postgres:5432 && python manage.py collectstatic --no-input && python manage.py migrate && gunicorn mysite.wsgi -b 0.0.0.0:8000"
+    command: sh -c "python manage.py collectstatic --no-input && python manage.py migrate && gunicorn GetEthereum.wsgi -b 0.0.0.0:8000"
     container_name: app
     depends_on:
-      - postgres
       - rabbitmq
     expose:
       - "8000"
@@ -44,11 +28,10 @@ services:
     restart: on-failure
 
   celery_worker:
-    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A mysite worker -l info"
+    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A GetEthereum worker --loglevel=info"
     container_name: celery_worker
     depends_on:
       - app
-      - postgres
       - rabbitmq
     deploy:
       replicas: 2
@@ -68,11 +51,10 @@ services:
     restart: on-failure
 
   celery_beat:
-    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A mysite beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler"
+    command: sh -c "wait-for rabbitmq:5672 && wait-for app:8000 -- celery -A GetEthereum beat -l INFO --scheduler django_celery_beat.schedulers:DatabaseScheduler"
     container_name: celery_beat
     depends_on:
       - app
-      - postgres
       - rabbitmq
     hostname: celery_beat
     image: app-image
@@ -83,5 +65,5 @@ services:
 networks:
   main:
 
-volumes:
-  postgresql-data:
+#volumes:
+#  postgresql-data:
